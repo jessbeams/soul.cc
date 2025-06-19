@@ -1,4 +1,3 @@
--- Only allow in Da Hood
 if game.PlaceId ~= 2788229376 then
     game:GetService("Players").LocalPlayer:Kick("This game is not supported.")
     return
@@ -12,10 +11,8 @@ local localPlayer = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local mouse = localPlayer:GetMouse()
 
--- CONFIG
 local FOV_RADIUS = 120
 
--- Draw FOV Circle
 local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = true
 fovCircle.Filled = false
@@ -29,7 +26,6 @@ RunService.RenderStepped:Connect(function()
     fovCircle.Position = Vector2.new(mouse.X + 1, mouse.Y + 36)
 end)
 
--- Knocked check
 local function isKnocked(char)
     local hum = char:FindFirstChildOfClass("Humanoid")
     local KO = char:FindFirstChild("K.O") or char:FindFirstChild("Knocked")
@@ -42,7 +38,6 @@ local function isKnocked(char)
     return false
 end
 
--- Line-of-sight check
 local function hasLineOfSight(part)
     local origin = camera.CFrame.Position
     local direction = (part.Position - origin)
@@ -58,7 +53,6 @@ local function hasLineOfSight(part)
     return false
 end
 
--- Get closest body part to mouse within FOV
 local function getClosestPart()
     local closestPart = nil
     local closestDist = math.huge
@@ -86,7 +80,6 @@ local function getClosestPart()
     return closestPart
 end
 
--- Mouse override (silent aim)
 local mt = getrawmetatable(game)
 local oldIndex = mt.__index
 setreadonly(mt, false)
