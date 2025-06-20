@@ -124,7 +124,7 @@ submit.MouseButton1Click:Connect(function()
 		fovCircle.Thickness = 2
 		fovCircle.Radius = 120
 		fovCircle.NumSides = 64
-		fovCircle.Color = Color3.fromRGB(0, 255, 0)
+		fovCircle.Color = Color3.fromRGB(255, 255, 255)
 		fovCircle.Transparency = 1
 
 		RunService.RenderStepped:Connect(function()
