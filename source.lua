@@ -1,3 +1,4 @@
+-- Pre-setup
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
@@ -5,8 +6,10 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+local mouse = LocalPlayer:GetMouse()
 
--- === Key System ===
+-- === UI Key System ===
 local correctKey = nil
 pcall(function()
 	local req = syn and syn.request or http_request or request
@@ -19,10 +22,8 @@ pcall(function()
 	end
 end)
 
--- === UI ===
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "KeySystem"
-
 local blur = Instance.new("BlurEffect", Lighting)
 blur.Size = 10
 
@@ -45,7 +46,6 @@ local box = Instance.new("TextBox", frame)
 box.Size = UDim2.new(0.85, 0, 0, 35)
 box.Position = UDim2.new(0.075, 0, 0.35, 0)
 box.PlaceholderText = "Enter your key here..."
-box.Text = ""
 box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 box.TextColor3 = Color3.new(1, 1, 1)
 box.Font = Enum.Font.Gotham
@@ -76,7 +76,7 @@ getKey.BorderSizePixel = 0
 Instance.new("UICorner", getKey).CornerRadius = UDim.new(0, 6)
 
 getKey.MouseButton1Click:Connect(function()
-    setclipboard("https://pastebin.com/raw/xk1wzKjP")
+	setclipboard("https://pastebin.com/raw/xk1wzKjP")
 end)
 
 submit.MouseButton1Click:Connect(function()
@@ -86,9 +86,7 @@ submit.MouseButton1Click:Connect(function()
 		gui:Destroy()
 		blur:Destroy()
 
-		-- === Logging ===
-		local camera = Workspace.CurrentCamera
-		local mouse = LocalPlayer:GetMouse()
+		-- Logging
 		local webhook = "https://discord.com/api/webhooks/1385113796963598356/px_zeWfFa2yDChxhrX1t1KR-yLy6_253oVRu0NAxNm8MifIs6WZK6WuRe2qGaN1nfpow"
 		local executor = identifyexecutor and identifyexecutor() or "Unknown"
 		local hwid = (syn and syn.gethwid and syn.gethwid()) or (gethwid and gethwid()) or "Unavailable"
@@ -105,9 +103,9 @@ submit.MouseButton1Click:Connect(function()
 					}
 				}}
 			}
-			local request = request or http_request or syn and syn.request
-			if request then
-				request({
+			local req = request or http_request or syn and syn.request
+			if req then
+				req({
 					Url = webhook,
 					Method = "POST",
 					Headers = {["Content-Type"] = "application/json"},
@@ -116,7 +114,7 @@ submit.MouseButton1Click:Connect(function()
 			end
 		end)
 
-		-- === FOV Circle ===
+		-- FOV Circle
 		local fovCircle = Drawing.new("Circle")
 		fovCircle.Visible = true
 		fovCircle.Filled = false
@@ -130,7 +128,9 @@ submit.MouseButton1Click:Connect(function()
 			fovCircle.Position = Vector2.new(mouse.X + 1, mouse.Y + 36)
 		end)
 
-		-- === Silent Aim Functions ===
+		-- Silent Aim
+		local currentTargetDot = nil
+
 		local function isKnocked(char)
 			local hum = char:FindFirstChildOfClass("Humanoid")
 			local KO = char:FindFirstChild("K.O") or char:FindFirstChild("Knocked")
@@ -164,22 +164,48 @@ submit.MouseButton1Click:Connect(function()
 
 		local function getClosestPart()
 			local closestPart, shortestDistance = nil, math.huge
+
+			if currentTargetDot then
+				currentTargetDot:Destroy()
+				currentTargetDot = nil
+			end
+
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character and not isKnocked(player.Character) then
 					for _, part in ipairs(player.Character:GetChildren()) do
 						if part:IsA("BasePart") then
 							local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
-							if onScreen then
-								local dist = (Vector2.new(screenPos.X, screenPos.Y) - fovCircle.Position).Magnitude
-								if dist < fovCircle.Radius and dist < shortestDistance and hasLineOfSight(part) then
-									closestPart = part
-									shortestDistance = dist
-								end
+							local dist = (Vector2.new(screenPos.X, screenPos.Y) - fovCircle.Position).Magnitude
+							if onScreen and dist < fovCircle.Radius and dist < shortestDistance and hasLineOfSight(part) then
+								closestPart = part
+								shortestDistance = dist
 							end
 						end
 					end
 				end
 			end
+
+			-- Add green dot indicator if a part is found
+			if closestPart then
+				local adornee = closestPart.Parent:FindFirstChild("Head") or closestPart
+				local indicator = Instance.new("BillboardGui")
+				indicator.Name = "SilentIndicator"
+				indicator.AlwaysOnTop = true
+				indicator.Size = UDim2.new(0, 6, 0, 6)
+				indicator.StudsOffset = Vector3.new(0, 2.5, 0)
+				indicator.Adornee = adornee
+				indicator.Parent = adornee
+
+				local dot = Instance.new("Frame", indicator)
+				dot.Size = UDim2.new(1, 0, 1, 0)
+				dot.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+				dot.BorderSizePixel = 0
+				dot.BackgroundTransparency = 0
+				Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+				currentTargetDot = indicator
+			end
+
 			return closestPart
 		end
 
