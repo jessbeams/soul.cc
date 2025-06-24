@@ -1,12 +1,18 @@
--- Pre-setup
+--H Hello uWu
+
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
+-- Local references
 local LocalPlayer = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local mouse = LocalPlayer:GetMouse()
+
+-- Script toggle
+local silentAimEnabled = true
 
 -- FOV Circle
 local fovCircle = Drawing.new("Circle")
@@ -18,13 +24,14 @@ fovCircle.NumSides = 64
 fovCircle.Color = Color3.fromRGB(255, 255, 255)
 fovCircle.Transparency = 1
 
+-- Update FOV position
 RunService.RenderStepped:Connect(function()
-	fovCircle.Position = Vector2.new(mouse.X + 1, mouse.Y + 36)
+	if silentAimEnabled then
+		fovCircle.Position = Vector2.new(mouse.X + 1, mouse.Y + 36)
+	end
 end)
 
--- Silent Aim
-local currentTargetDot = nil
-
+-- Function to check knock status
 local function isKnocked(char)
 	local hum = char:FindFirstChildOfClass("Humanoid")
 	local KO = char:FindFirstChild("K.O") or char:FindFirstChild("Knocked")
@@ -33,6 +40,7 @@ local function isKnocked(char)
 	return false
 end
 
+-- Function to check line of sight
 local function hasLineOfSight(part)
 	local origin = camera.CFrame.Position
 	local direction = (part.Position - origin).Unit * 999
@@ -47,18 +55,20 @@ local function hasLineOfSight(part)
 	return true
 end
 
+-- Ping predictor
 local function getPing()
 	local ping = LocalPlayer:GetNetworkPing()
 	return ping and ping / 1000 or 0.1
 end
 
-local function shouldHit()
-	return math.random() <= 0.7
-end
+-- Current target dot (green indicator)
+local currentTargetDot = nil
 
+-- Closest part function
 local function getClosestPart()
 	local closestPart, shortestDistance = nil, math.huge
 
+	-- Remove old indicator
 	if currentTargetDot then
 		currentTargetDot:Destroy()
 		currentTargetDot = nil
@@ -70,7 +80,7 @@ local function getClosestPart()
 				if part:IsA("BasePart") then
 					local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
 					local dist = (Vector2.new(screenPos.X, screenPos.Y) - fovCircle.Position).Magnitude
-					if onScreen and dist < fovCircle.Radius and dist < shortestDistance and hasLineOfSight(part) then
+					if silentAimEnabled and onScreen and dist < fovCircle.Radius and dist < shortestDistance and hasLineOfSight(part) then
 						closestPart = part
 						shortestDistance = dist
 					end
@@ -80,7 +90,7 @@ local function getClosestPart()
 	end
 
 	-- Green dot indicator
-	if closestPart then
+	if silentAimEnabled and closestPart then
 		local adornee = closestPart.Parent:FindFirstChild("Head") or closestPart
 		local indicator = Instance.new("BillboardGui")
 		indicator.Name = "SilentIndicator"
@@ -109,19 +119,31 @@ local oldIndex = mt.__index
 setreadonly(mt, false)
 
 mt.__index = function(t, k)
-	if t == mouse and (k == "Target" or k == "Hit") then
-		if shouldHit() then
-			local target = getClosestPart()
-			if target then
-				local ping = getPing()
-				local predictedPos = target.Position + target.Velocity * ping
-				local predictedCFrame = CFrame.new(predictedPos)
-				if k == "Target" then return target end
-				if k == "Hit" then return predictedCFrame end
-			end
+	if silentAimEnabled and t == mouse and (k == "Target" or k == "Hit") then
+		local target = getClosestPart()
+		if target then
+			local ping = getPing()
+			local predictedPos = target.Position + target.Velocity * ping
+			local predictedCFrame = CFrame.new(predictedPos)
+			if k == "Target" then return target end
+			if k == "Hit" then return predictedCFrame end
 		end
 	end
 	return oldIndex(t, k)
 end
 
 setreadonly(mt, true)
+
+-- Keybind toggle (F4)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if input.KeyCode == Enum.KeyCode.F4 and not gameProcessed then
+		silentAimEnabled = not silentAimEnabled
+		fovCircle.Visible = silentAimEnabled
+
+		-- Cleanup if disabled
+		if not silentAimEnabled and currentTargetDot then
+			currentTargetDot:Destroy()
+			currentTargetDot = nil
+		end
+	end
+end)
