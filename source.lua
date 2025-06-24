@@ -1,12 +1,37 @@
--- Pre-setup
+-- Version Check
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local mouse = LocalPlayer:GetMouse()
+
+-- YOUR local version string
+local localVersion = "Version.100"
+
+-- Function to fetch the remote version
+local function checkVersion()
+	local success, response = pcall(function()
+		return game:HttpGet("https://raw.githubusercontent.com/jessbeams/soul.cc/refs/heads/main/source.lua")
+	end)
+
+	if success and response then
+		local remoteVersion = string.match(response, "Version%.[%d]+")
+		if remoteVersion and remoteVersion ~= localVersion then
+			LocalPlayer:Kick("🚫 Wait for new version.\n(Current: " .. localVersion .. " | Remote: " .. remoteVersion .. ")")
+		elseif not remoteVersion then
+			LocalPlayer:Kick("🚫 Version tag missing in remote script.")
+		end
+	else
+		LocalPlayer:Kick("🚫 Failed to check version.")
+	end
+end
+
+checkVersion()
+
+-- === Silent Aim Core ===
 
 -- FOV Circle
 local fovCircle = Drawing.new("Circle")
@@ -48,8 +73,7 @@ local function hasLineOfSight(part)
 end
 
 local function getPing()
-	local ping = LocalPlayer:GetNetworkPing()
-	return ping and ping / 1000 or 0.1
+	return 0.1 -- SWIFT: use average ping
 end
 
 local function shouldHit()
@@ -79,7 +103,7 @@ local function getClosestPart()
 		end
 	end
 
-	-- Green dot indicator
+	-- Green Dot Indicator
 	if closestPart then
 		local adornee = closestPart.Parent:FindFirstChild("Head") or closestPart
 		local indicator = Instance.new("BillboardGui")
@@ -87,8 +111,8 @@ local function getClosestPart()
 		indicator.AlwaysOnTop = true
 		indicator.Size = UDim2.new(0, 6, 0, 6)
 		indicator.StudsOffset = Vector3.new(0, 2.5, 0)
-		indicator.Adornee = adornee
-		indicator.Parent = adornee
+		indicator.Adornee = adornee:FindFirstAncestorOfClass("Model") or adornee
+		indicator.Parent = adornee:FindFirstAncestorOfClass("Model") or adornee
 
 		local dot = Instance.new("Frame", indicator)
 		dot.Size = UDim2.new(1, 0, 1, 0)
@@ -103,7 +127,7 @@ local function getClosestPart()
 	return closestPart
 end
 
--- Metatable override for silent aim
+-- Metatable override
 local mt = getrawmetatable(game)
 local oldIndex = mt.__index
 setreadonly(mt, false)
