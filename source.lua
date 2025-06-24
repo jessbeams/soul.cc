@@ -9,7 +9,7 @@ local camera = Workspace.CurrentCamera
 local mouse = LocalPlayer:GetMouse()
 
 -- YOUR local version string
-local localVersion = "Version.100"
+local localVersion = "Version.101"
 
 -- Function to fetch the remote version
 local function checkVersion()
