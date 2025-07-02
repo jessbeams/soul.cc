@@ -6,12 +6,10 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
--- Local references
 local LocalPlayer = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local mouse = LocalPlayer:GetMouse()
 
--- Script toggle
 local silentAimEnabled = true
 
 -- FOV Circle
@@ -24,30 +22,32 @@ fovCircle.NumSides = 64
 fovCircle.Color = Color3.fromRGB(255, 255, 255)
 fovCircle.Transparency = 1
 
--- Update FOV position
 RunService.RenderStepped:Connect(function()
 	if silentAimEnabled then
 		fovCircle.Position = Vector2.new(mouse.X + 1, mouse.Y + 36)
 	end
 end)
 
--- Function to check knock status
+-- Knocked check (BodyEffects.K.O or Grabbed)
 local function isKnocked(char)
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	local KO = char:FindFirstChild("K.O") or char:FindFirstChild("Knocked")
-	if KO and KO:IsA("BoolValue") then return KO.Value end
-	if hum and hum.Health <= 0 then return true end
-	return false
+	local bodyEffects = char:FindFirstChild("BodyEffects")
+	if not bodyEffects then return false end
+
+	local ko = bodyEffects:FindFirstChild("K.O")
+	local grabbed = bodyEffects:FindFirstChild("Grabbed")
+
+	return (ko and ko.Value) or (grabbed and grabbed.Value)
 end
 
--- Function to check line of sight
+-- Wall check via raycast
 local function hasLineOfSight(part)
 	local origin = camera.CFrame.Position
-	local direction = (part.Position - origin).Unit * 999
+	local direction = (part.Position - origin).Unit * 1000
 	local rayParams = RaycastParams.new()
 	rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 	rayParams.IgnoreWater = true
+
 	local result = Workspace:Raycast(origin, direction, rayParams)
 	if result then
 		return part:IsDescendantOf(result.Instance:FindFirstAncestorOfClass("Model"))
@@ -55,20 +55,16 @@ local function hasLineOfSight(part)
 	return true
 end
 
--- Ping predictor
 local function getPing()
 	local ping = LocalPlayer:GetNetworkPing()
 	return ping and ping / 1000 or 0.1
 end
 
--- Current target dot (green indicator)
 local currentTargetDot = nil
 
--- Closest part function
 local function getClosestPart()
 	local closestPart, shortestDistance = nil, math.huge
 
-	-- Remove old indicator
 	if currentTargetDot then
 		currentTargetDot:Destroy()
 		currentTargetDot = nil
@@ -89,7 +85,6 @@ local function getClosestPart()
 		end
 	end
 
-	-- Green dot indicator
 	if silentAimEnabled and closestPart then
 		local adornee = closestPart.Parent:FindFirstChild("Head") or closestPart
 		local indicator = Instance.new("BillboardGui")
@@ -113,7 +108,7 @@ local function getClosestPart()
 	return closestPart
 end
 
--- Metatable override for silent aim
+-- Metatable silent aim
 local mt = getrawmetatable(game)
 local oldIndex = mt.__index
 setreadonly(mt, false)
@@ -134,13 +129,12 @@ end
 
 setreadonly(mt, true)
 
--- Keybind toggle (F4)
+-- Toggle with F4
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == Enum.KeyCode.F4 and not gameProcessed then
 		silentAimEnabled = not silentAimEnabled
 		fovCircle.Visible = silentAimEnabled
 
-		-- Cleanup if disabled
 		if not silentAimEnabled and currentTargetDot then
 			currentTargetDot:Destroy()
 			currentTargetDot = nil
