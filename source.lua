@@ -12,7 +12,6 @@ local mouse = LocalPlayer:GetMouse()
 
 local silentAimEnabled = true
 
--- FOV Circle
 local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = true
 fovCircle.Filled = false
@@ -28,7 +27,6 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Knocked check (BodyEffects.K.O or Grabbed)
 local function isKnocked(char)
 	local bodyEffects = char:FindFirstChild("BodyEffects")
 	if not bodyEffects then return false end
@@ -39,7 +37,6 @@ local function isKnocked(char)
 	return (ko and ko.Value) or (grabbed and grabbed.Value)
 end
 
--- Wall check via raycast
 local function hasLineOfSight(part)
 	local origin = camera.CFrame.Position
 	local direction = (part.Position - origin).Unit * 1000
@@ -108,7 +105,6 @@ local function getClosestPart()
 	return closestPart
 end
 
--- Metatable silent aim
 local mt = getrawmetatable(game)
 local oldIndex = mt.__index
 setreadonly(mt, false)
@@ -129,7 +125,6 @@ end
 
 setreadonly(mt, true)
 
--- Toggle with F4
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == Enum.KeyCode.F4 and not gameProcessed then
 		silentAimEnabled = not silentAimEnabled
